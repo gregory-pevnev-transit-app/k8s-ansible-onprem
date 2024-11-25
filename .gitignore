@@ -3,3 +3,5 @@
 
 /group_vars
 /host_vars
+
+.DS_Store
