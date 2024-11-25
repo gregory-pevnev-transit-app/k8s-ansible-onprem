@@ -1,0 +1,43 @@
+version = 2
+
+root = "{{ containerd_data_directory }}"
+state = "{{ containerd_state_directory }}"
+
+# Running as the ContainerD owner (Root / Admin)
+#   -> Making accessible to other users through the group
+[grpc]
+  address = "{{ containerd_socket_file }}"
+  uid = {{ containerd_owner_uid }}
+  gid = {{ containerd_users_group_gid }}
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    # Using the K8s pause-image for sandboxing namespaces (Ensuring there is always a process running)
+    sandbox_image = "registry.k8s.io/pause:3.8"
+    # Using the CNI Plugins and Network configuration
+    [plugins."io.containerd.grpc.v1.cri".cni]
+      bin_dir = "{{ cni_bin_directory }}"
+      conf_dir = "{{ cni_conf_directory }}"
+    # Using the installed runC and configuring it to use SystemD as the C-Group manager
+    #   - Ensures a single C-Group hierarchy
+    [plugins."io.containerd.grpc.v1.cri".containerd]
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
+        [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+          runtime_type = "io.containerd.runc.v2"
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            BinaryName = "{{ runc_binary }}"
+            SystemdCgroup = true
+    # Specifying credentials for authenticating to container registries
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "{{ containerd_config_certs_directory }}"
+    [plugins."io.containerd.cri.v1.images".registry]
+      config_path = "{{ containerd_config_certs_directory }}"
+
+# Configuring to store keys in the configuration-directory
+[stream_processors]
+  [stream_processors."io.containerd.ocicrypt.decoder.v1.tar"]
+    args = ["--decryption-keys-path", "{{ containerd_config_keys_directory }}"]
+    env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ containerd_config_key_provider_config_file }}"]
+  [stream_processors."io.containerd.ocicrypt.decoder.v1.tar.gzip"]
+    args = ["--decryption-keys-path", "{{ containerd_config_keys_directory }}"]
+    env = ["OCICRYPT_KEYPROVIDER_CONFIG={{ containerd_config_key_provider_config_file }}"]

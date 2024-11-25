@@ -1,0 +1,25 @@
+- hosts: kubectl
+  roles:
+    - role: kubectl
+      tags: install-kubectl
+
+- hosts: k8s_cluster
+  roles:
+    - role: k8s_node
+      tags: setup-k8s-nodes
+
+- hosts: k8s_control_plane_node
+  roles:
+    - role: ca_tools
+      tags: setup-ca-tools
+    - role: ca
+      tags: setup-ca
+    - role: etcd
+      tags: setup-etcd
+    - role: control_plane
+      tags: setup-control-plane
+
+- hosts: k8s_worker_node
+  roles:
+    - role: worker
+      tags: setup-worker

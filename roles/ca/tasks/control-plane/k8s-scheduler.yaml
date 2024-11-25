@@ -1,0 +1,48 @@
+- name: "K8s Scheduler CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/control-plane/k8s-scheduler-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-scheduler-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s Scheduler Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=k8s-ca-config.json \
+      -profile=kubernetes \
+      -ca=k8s-ca.pem \
+      -ca-key=k8s-ca-key.pem \
+      k8s-scheduler-cert-csr.json \
+    | cfssljson -bare k8s-scheduler-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/k8s-scheduler-cert-key.pem"
+
+- name: "K8s Scheduler Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - k8s-scheduler-cert.pem
+    - k8s-scheduler-cert-key.pem
+    - k8s-scheduler-cert.csr
+
+- name: "K8s Scheduler PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-scheduler-cert.pem', dest_file: 'scheduler.crt' }
+    - { src_file: 'k8s-scheduler-cert-key.pem', dest_file: 'scheduler.key' }

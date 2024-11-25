@@ -1,0 +1,221 @@
+#
+# Common Certificates settings
+#
+
+k8s_ca_certificate_owner: "root"
+k8s_ca_certificate_group: "root"
+
+k8s_ca_certificate_directory_perm: "0770"
+k8s_ca_certificate_file_perm: "0660"
+
+# Using a temporary work-directory for generating CA / Certificate files
+#   -> Copying to appropriate locations / nodes
+k8s_ca_certificate_conf_directory: "/etc/kubernetes/tmp/pki"
+
+# Important: All PKI files are copied into their dedicated directories
+#   - Defined globally for the Control-Plane Node
+
+#
+# ETCD Certificate-Authority settings
+#
+
+# ETCD Certificates should be valid for 10 years
+ca_etcd_expiry: "87600h"
+
+ca_etcd_csr_cn: "ETCD"
+ca_etcd_csr_names_o: "ETCD"
+ca_etcd_csr_key_algo: "rsa"
+ca_etcd_csr_key_size: "2048"
+ca_etcd_csr_names_c: "CA"
+ca_etcd_csr_names_st: "Montreal"
+ca_etcd_csr_names_ou: "IT"
+ca_etcd_csr_names_l: "The_Internet"
+
+#
+# K8s Certificate-Authority settings
+#
+
+# K8s Certificates should be valid for 10 years
+ca_k8s_expiry: "87600h"
+
+ca_k8s_csr_cn: "Kubernetes"
+ca_k8s_csr_names_o: "Kubernetes"
+ca_k8s_csr_key_algo: "rsa"
+ca_k8s_csr_key_size: "2048"
+ca_k8s_csr_names_c: "CA"
+ca_k8s_csr_names_st: "Montreal"
+ca_k8s_csr_names_ou: "IT"
+ca_k8s_csr_names_l: "The_Internet"
+
+#
+# ETCD Certificates settings
+#
+
+# ETCD server Certificate -> Used by the ETCD server for authenticating itself to clients
+etcd_server_csr_cn: "etcd-server"
+etcd_server_csr_names_o: "Kubernetes"
+etcd_server_csr_key_algo: "rsa"
+etcd_server_csr_key_size: "2048"
+etcd_server_csr_names_c: "CA"
+etcd_server_csr_names_st: "Montreal"
+etcd_server_csr_names_ou: "IT"
+etcd_server_csr_names_l: "The_Internet"
+
+# ETCD peer Certificate -> Used by the ETCD server for joining into cluster
+# IMPORTANT: Necessary even when running a single-node setup
+etcd_peer_csr_cn: "etcd-peer"
+etcd_peer_csr_names_o: "Kubernetes"
+etcd_peer_csr_key_algo: "rsa"
+etcd_peer_csr_key_size: "2048"
+etcd_peer_csr_names_c: "CA"
+etcd_peer_csr_names_st: "Montreal"
+etcd_peer_csr_names_ou: "IT"
+etcd_peer_csr_names_l: "The_Internet"
+
+# ETCD client Certificate -> Used by the K8s API-Server for authenticating to the ETCD server
+etcd_client_csr_cn: "etcd-client"
+etcd_client_csr_names_o: "Kubernetes"
+etcd_client_csr_key_algo: "rsa"
+etcd_client_csr_key_size: "2048"
+etcd_client_csr_names_c: "CA"
+etcd_client_csr_names_st: "Montreal"
+etcd_client_csr_names_ou: "IT"
+etcd_client_csr_names_l: "The_Internet"
+
+# Allowing ETCD to be reachable only from localhost (Local process)
+#   -> SAN for the ETCD Certificate
+etcd_hosts_list:
+  - 127.0.0.1
+  - localhost
+
+#
+# K8s API-Server Certificates settings
+#
+
+# K8s API-Server Certificate -> Used by the API-Server for
+#   1) Authenticating itself
+#   2) Establishing a TLS connection
+k8s_apiserver_csr_cn: "system:kube-apiserver"
+k8s_apiserver_csr_names_o: "Kubernetes"
+k8s_apiserver_csr_key_algo: "rsa"
+k8s_apiserver_csr_key_size: "2048"
+k8s_apiserver_csr_names_c: "CA"
+k8s_apiserver_csr_names_st: "Montreal"
+k8s_apiserver_csr_names_ou: "IT"
+k8s_apiserver_csr_names_l: "The_Internet"
+
+# Allowing K8s API-Server to be reachable from
+#   1) Public-IP of the Control-Plane Node
+#   2) Private-IP of the Control-Plane Node
+#   3) Localhost / Loopback
+#   4) Cluster-IP / Service
+k8s_apiserver_hosts_list:
+  # Making the API-Server reachable from public and private IPs
+  - "{{ k8s_control_plane_node_public_ip }}"
+  - "{{ k8s_control_plane_node_private_ip }}"
+  # Making the API-Server reachable from the localhost
+  - localhost
+  - 127.0.0.1
+  # Making the API-Server reachable from its Services
+  # IMPORTANT: Implies that "172.17.0.0/16" IP-Range is dedicated for Cluster-IPs used by Services
+  #   -> The very first Cluster-IP is always assigned to the API-Server
+  - 172.17.0.1
+  - kubernetes
+  - kubernetes.default
+  - kubernetes.default.svc
+  - kubernetes.default.svc.cluster
+  - kubernetes.default.svc.cluster.local
+
+#
+# Control-Plane Certificates settings
+#
+
+# Kube-Scheduler Certificate -> Used for authenticating itself to the API-Server
+#  - Needs a distinct CN (Name)
+#  - Needs a distinct O (Group)
+k8s_scheduler_csr_cn: "system:kube-scheduler" # Identifies itself as the K8s Scheduler
+k8s_scheduler_csr_names_o: "system:kube-scheduler" # Gives itself scheduler level permissions
+k8s_scheduler_csr_key_algo: "rsa"
+k8s_scheduler_csr_key_size: "2048"
+k8s_scheduler_csr_names_c: "CA"
+k8s_scheduler_csr_names_st: "Montreal"
+k8s_scheduler_csr_names_ou: "IT"
+k8s_scheduler_csr_names_l: "The_Internet"
+
+# Kube-Controller-Manager Certificate -> Used for authenticating itself to the API-Server
+#  - Needs a distinct CN (Name)
+#  - Needs a distinct O (Group)
+k8s_controller_manager_csr_cn: "system:kube-controller-manager" # Identifies itself as the K8s Controller-Manager
+k8s_controller_manager_csr_names_o: "system:kube-controller-manager" # Gives itself controller-manager level permissions
+k8s_controller_manager_csr_key_algo: "rsa"
+k8s_controller_manager_csr_key_size: "2048"
+k8s_controller_manager_csr_names_c: "CA"
+k8s_controller_manager_csr_names_st: "Montreal"
+k8s_controller_manager_csr_names_ou: "IT"
+k8s_controller_manager_csr_names_l: "The_Internet"
+
+#
+# K8s service-accounts Certificates settings
+#
+
+# K8s API-Server client Certificate -> Used by clients for accessing the K8s / API-Server
+#   - KubeCTL
+#   - Applications
+k8s_admin_csr_cn: "admin" # Setting the username of the client to "admin"
+k8s_admin_csr_names_o: "system:masters" # Gives itself master / admin permissions
+k8s_admin_csr_key_algo: "rsa"
+k8s_admin_csr_key_size: "2048"
+k8s_admin_csr_names_c: "CA"
+k8s_admin_csr_names_st: "Montreal"
+k8s_admin_csr_names_ou: "IT"
+k8s_admin_csr_names_l: "The_Internet"
+
+# K8s Service-Accounts Certificate -> Used for provisioning and verifying Service-Accounts
+#   - Used by the Controller-Manager for signing / provisioning SAs (Private-Key)
+#   - Used by the API-Server for verifying SAs (Public-Key)
+k8s_service_account_csr_cn: "k8s-service-accounts"
+k8s_service_account_csr_names_o: "Kubernetes"
+k8s_service_account_csr_key_algo: "rsa"
+k8s_service_account_csr_key_size: "2048"
+k8s_service_account_csr_names_c: "CA"
+k8s_service_account_csr_names_st: "Montreal"
+k8s_service_account_csr_names_ou: "IT"
+k8s_service_account_csr_names_l: "The_Internet"
+
+#
+# Worker Certificates settings
+#
+
+# Allowing Kubelet to be reachable from
+#   1) Hostname of the Worker Node
+#   2) Private-IP of the Worker Node
+#   3) Localhost / Loopback
+k8s_kubelet_hosts_list:
+  - "{{ k8s_worker_node_hostname }}"
+  - "{{ k8s_worker_node_private_ip }}"
+  - localhost
+  - 127.0.0.1
+
+# Kubelet Certificate -> Used for authenticating itself to the API-Server
+#  - Needs a distinct CN (Name)
+#  - Needs a distinct O (Group)
+k8s_kubelet_csr_cn: "system:node:{{ k8s_worker_node_hostname }}" # Identifies itself as a K8s Worker-Node
+k8s_kubelet_csr_names_o: "system:nodes" # Gives itself node level permissions
+k8s_kubelet_csr_key_algo: "rsa"
+k8s_kubelet_csr_key_size: "2048"
+k8s_kubelet_csr_names_c: "CA"
+k8s_kubelet_csr_names_st: "Montreal"
+k8s_kubelet_csr_names_ou: "IT"
+k8s_kubelet_csr_names_l: "The_Internet"
+
+# Kube-Proxy Certificate -> Used for authenticating itself to the API-Server
+#  - Needs a distinct CN (Name)
+#  - Needs a distinct O (Group)
+k8s_kube_proxy_csr_cn: "system:kube-proxy" # Identifies itself as a K8s Proxy
+k8s_kube_proxy_csr_names_o: "system:node-proxier" # Gives itself node-proxy level permissions
+k8s_kube_proxy_csr_key_algo: "rsa"
+k8s_kube_proxy_csr_key_size: "2048"
+k8s_kube_proxy_csr_names_c: "CA"
+k8s_kube_proxy_csr_names_l: "The_Internet"
+k8s_kube_proxy_csr_names_ou: "IT"
+k8s_kube_proxy_csr_names_st: "Montreal"

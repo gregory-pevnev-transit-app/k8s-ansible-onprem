@@ -1,0 +1,110 @@
+k8s_apiserver_service_name: "kube-apiserver"
+
+#
+# Configuration files
+#
+
+k8s_apiserver_conf_dir: "{{ k8s_conf_base_dir }}/kube-apiserver"
+
+k8s_apiserver_encryption_conf_file: "{{ k8s_apiserver_conf_dir }}/encryption-config.yaml"
+k8s_apiserver_encryption_conf_file_mode: "0660"
+
+k8s_apiserver_rbac_dir: "{{ k8s_apiserver_conf_dir }}/permissions"
+k8s_apiserver_rbac_dir_mode: "0660"
+
+k8s_apiserver_audit_log_dir: "{{ k8s_log_base_dir }}/kube-apiserver"
+
+#
+# Addresses and Hosts (ETCD and Kube-API)
+#
+
+# ETCD: Accessing on localhost over the well-known port
+k8s_api_etcd_client_port: "2379"
+
+# API-Server: Can access on
+#   - Localhost -> Used by the Control-Plane (Running on the same host)
+#   - Private-IP -> Used by the Kubelet (Running on the same network)
+#   - Public-IP -> Used by clients / admin
+k8s_api_endpoint_port: "6443"
+k8s_api_endpoint_local: "https://127.0.0.1:{{ k8s_api_endpoint_port }}"
+k8s_api_endpoint_private: "https://{{ k8s_control_plane_node_private_ip }}:{{ k8s_api_endpoint_port }}"
+k8s_api_endpoint_public: "https://{{ k8s_control_plane_node_public_ip }}:{{ k8s_api_endpoint_port }}"
+
+#
+# Settings
+#
+
+# Certificates: Using the same CA and Certificate for
+#   - The TLS of the API-Server
+#   - Authenticating clients to the API-Server
+#   - Authenticating the API-Server to the Kubelet
+k8s_apiserver_settings:
+  #
+  # ETCD configuration
+  #
+  # CA and Client-Certificate
+  "etcd-cafile": "{{ k8s_etcd_pki_directory }}/ca.crt"
+  "etcd-certfile": "{{ k8s_etcd_pki_directory }}/client.crt"
+  "etcd-keyfile": "{{ k8s_etcd_pki_directory }}/client.key"
+  # Address: Accessing on the localhost
+  "etcd-servers": "https://127.0.0.1:{{ k8s_api_etcd_client_port }}"
+  #
+  # API configuration
+  #
+  # Client CA -> Authenticating Client (Controller-Manager / Scheduler / Kubelet / etc.)
+  "client-ca-file": "{{ k8s_pki_directory }}/ca.crt" 
+  # TLS
+  "tls-cert-file": "{{ k8s_pki_directory }}/apiserver.crt"
+  "tls-private-key-file": "{{ k8s_pki_directory }}/apiserver.key"
+  # Addresses
+  # Advertising the Private-IP for other Control-Plane components
+  # Listening on ALL addresses: Localhost, Private-IP and Public-IP
+  "advertise-address": "{{ k8s_control_plane_node_private_ip }}"
+  "bind-address": "0.0.0.0"
+  "secure-port": "{{ k8s_api_endpoint_port }}"
+  "kubelet-preferred-address-types": "Hostname,InternalIP,ExternalIP"
+  #
+  # Kubelet access (CA and Client-Certificate)
+  # Important: Using the same CA and Certificate as for the API-Server TLS and Clients Authentication
+  #
+  "kubelet-certificate-authority": "{{ k8s_pki_directory }}/ca.crt"
+  "kubelet-client-certificate": "{{ k8s_pki_directory }}/apiserver.crt"
+  "kubelet-client-key": "{{ k8s_pki_directory }}/apiserver.key"
+  #
+  # Service-Accounts: Using a Key-Pair for setting up Token-based authorization
+  #  - Using the Private-Key for signing / issuing SA Tokens
+  #  - Using the Public-Key for verifying / checking SA Tokens
+  # Important: The Public-Key is extracted from the SA Certificate (Used by the Controller-Manager loops)
+  #
+  "service-account-signing-key-file": "{{ k8s_pki_directory }}/sa.key"
+  "service-account-key-file": "{{ k8s_pki_directory }}/sa.crt"
+  "service-account-issuer": "https://kubernetes.default.svc.cluster.local"
+  #
+  # Encryption
+  #
+  "encryption-provider-config": "{{ k8s_apiserver_conf_dir }}/encryption-config.yaml"
+  "encryption-provider-config-automatic-reload": "true"
+  #
+  # Logging (Audits)
+  #
+  "audit-log-maxage": "30"
+  "audit-log-maxbackup": "3"
+  "audit-log-maxsize": "100"
+  "audit-log-path": "{{ k8s_apiserver_audit_log_dir }}/audit.log"
+  #
+  # Services
+  #
+  "service-cluster-ip-range": "{{ k8s_services_ip_range }}"
+  "service-node-port-range": "{{ k8s_services_node_port_range }}"
+  #
+  # Authorization and permissions
+  #
+  "enable-admission-plugins": "NodeRestriction,NamespaceLifecycle,LimitRanger,ServiceAccount,TaintNodesByCondition,Priority,DefaultTolerationSeconds,DefaultStorageClass,PersistentVolumeClaimResize,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota,PodSecurity,Priority,StorageObjectInUseProtection,RuntimeClass,CertificateApproval,CertificateSigning,ClusterTrustBundleAttest,CertificateSubjectRestriction,DefaultIngressClass"
+  "allow-privileged": "true"
+  "authorization-mode": "Node,RBAC"
+  #
+  # Settings
+  #
+  # TODO: Customize / add more
+  "runtime-config": "api/all=true"
+  "event-ttl": "1h"

@@ -1,0 +1,18 @@
+k8s_kubelet_service_name: "kubelet"
+
+k8s_worker_kubelet_conf_dir: "{{ k8s_worker_conf_base_dir }}/kubelet"
+k8s_worker_kubelet_conf_file: "{{ k8s_worker_kubelet_conf_dir }}/kubelet-config.yaml"
+k8s_worker_kubelet_kubeconfig: "{{ k8s_worker_kubelet_conf_dir }}/kubeconfig"
+
+k8s_worker_kubelet_settings:
+  # IMPORTANT: Making sure the hostname of the node is the one specified in the rest of the configuration
+  "hostname-override": "{{ k8s_worker_node_hostname }}"
+  "config": "{{ k8s_worker_kubelet_conf_file }}"
+  "kubeconfig": "{{ k8s_worker_kubelet_kubeconfig }}"
+  "node-ip": "{{ k8s_worker_node_private_ip }}"
+
+k8s_worker_kubelet_service_options:
+  # Allowing Kubelet to use up to 500MB
+  - MemoryMax=500M
+  # Setting Kubelet CPU-Weight to x5 of a regular service (100 is the SystemD default)
+  - CPUWeight=500

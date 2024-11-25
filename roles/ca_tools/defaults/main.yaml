@@ -1,0 +1,10 @@
+cfssl_version: "1.6.5"
+
+cfssl_arch: "amd64"
+cfssl_os: "linux"
+
+cfssl_checksum_url: "https://github.com/cloudflare/cfssl/releases/download/v{{ cfssl_version }}/cfssl_{{ cfssl_version }}_checksums.txt"
+
+cfssl_owner: "root"
+cfssl_group: "root"
+cfssl_bin_directory: "/usr/local/bin"

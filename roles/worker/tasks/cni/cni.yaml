@@ -1,0 +1,7 @@
+- name: "CNI plugins installation"
+  ansible.builtin.include_tasks:
+    file: "cni/cni-installation.yaml"
+
+- name: "CNI plugins configuration"
+  ansible.builtin.include_tasks:
+    file: "cni/cni-configuration.yaml"

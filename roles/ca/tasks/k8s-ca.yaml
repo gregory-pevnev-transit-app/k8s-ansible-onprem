@@ -1,0 +1,65 @@
+- name: "K8s Certificate-Authority (CA) configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/k8s-ca-config.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-ca-config.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s CA Certificate-Signing-Request (CSR) configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/k8s-ca-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-ca-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s CA Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -initca k8s-ca-csr.json \
+    | cfssljson -bare k8s-ca
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/k8s-ca-key.pem"
+
+- name: "K8s CA Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - k8s-ca-key.pem # Private-Key File
+    - k8s-ca.csr # CSR File
+    - k8s-ca.pem # Certificate File
+
+- name: "K8s CA PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-ca.pem', dest_file: 'ca.crt' }
+    - { src_file: 'k8s-ca-key.pem', dest_file: 'ca.key' }
+
+- name: "K8s CA PKI files copying (Worker)"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_worker_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-ca.pem', dest_file: 'ca.crt' }
+    - { src_file: 'k8s-ca-key.pem', dest_file: 'ca.key' }
+

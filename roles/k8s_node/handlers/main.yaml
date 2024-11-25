@@ -1,0 +1,11 @@
+- name: Restart SSH
+  ansible.builtin.service:
+    name: ssh
+    state: "{{ item }}"
+  loop:
+    - stopped
+    - started
+
+- name: Reload UFW
+  community.general.ufw:
+    state: reloaded

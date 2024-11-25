@@ -1,0 +1,207 @@
+#
+# ETCD CA files
+#
+
+- name: "ETCD Certificate-Authority (CA) configuration-file provisioning"
+  ansible.builtin.template:
+    src: "etcd/etcd-ca-config.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/etcd-ca-config.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "ETCD CA Certificate-Signing-Request (CSR) configuration-file provisioning"
+  ansible.builtin.template:
+    src: "etcd/etcd-ca-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/etcd-ca-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "ETCD CA Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -initca etcd-ca-csr.json \
+    | cfssljson -bare etcd-ca
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/etcd-ca-key.pem"
+
+- name: "ETCD CA Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - etcd-ca-key.pem # Private-Key File
+    - etcd-ca.csr # CSR File
+    - etcd-ca.pem # Certificate File
+
+#
+# ETCD Server Certificate files
+#
+
+# Host-Names need to be provided as a comma-separated string -> Composing it
+- name: "ETCD host-names / IP-Addresses (SAN) - Compose"
+  ansible.builtin.set_fact:
+    etcd_hosts: >-
+      {% set comma = joiner(",") %}{% for item in etcd_hosts_list -%}
+        {{ comma() }}{{ item }}
+      {%- endfor %}
+- name: "ETCD host-names / IP-Addresses (SAN) - Print"
+  ansible.builtin.debug:
+    var: etcd_hosts
+
+- name: "ETCD Server CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "etcd/etcd-server-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/etcd-server-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "ETCD Server Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=etcd-ca-config.json \
+      -profile=server \
+      -ca=etcd-ca.pem \
+      -ca-key=etcd-ca-key.pem \
+      -hostname={{ etcd_hosts }} \
+      etcd-server-cert-csr.json \
+    | cfssljson -bare etcd-server-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/etcd-server-cert-key.pem"
+
+- name: "ETCD Server Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - etcd-server-cert.pem
+    - etcd-server-cert-key.pem
+    - etcd-server-cert.csr
+
+#
+# ETCD Peer Certificate files
+#
+
+- name: "ETCD Peer CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "etcd/etcd-peer-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/etcd-peer-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "ETCD Peer Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=etcd-ca-config.json \
+      -profile=peer \
+      -ca=etcd-ca.pem \
+      -ca-key=etcd-ca-key.pem \
+      -hostname={{ etcd_hosts }} \
+      etcd-peer-cert-csr.json \
+    | cfssljson -bare etcd-peer-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/etcd-peer-cert-key.pem"
+
+- name: "ETCD Peer Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - etcd-peer-cert.pem
+    - etcd-peer-cert-key.pem
+    - etcd-peer-cert.csr
+
+#
+# ETCD Client Certificate files
+#
+
+- name: "ETCD Client CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "etcd/etcd-client-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/etcd-client-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "ETCD Client Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=etcd-ca-config.json \
+      -profile=client \
+      -ca=etcd-ca.pem \
+      -ca-key=etcd-ca-key.pem \
+      -hostname="" \
+      etcd-client-cert-csr.json \
+    | cfssljson -bare etcd-client-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/etcd-client-cert-key.pem"
+
+- name: "ETCD Client Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - etcd-client-cert.pem
+    - etcd-client-cert-key.pem
+    - etcd-client-cert.csr
+
+#
+# ETCD PKI files - Copying to the final location
+#
+
+- name: "ETCD PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{k8s_etcd_pki_directory}}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    # ETCD CA Certificate and Private-Key
+    - { src_file: 'etcd-ca.pem', dest_file: 'ca.crt' }
+    - { src_file: 'etcd-ca-key.pem', dest_file: 'ca.key' }
+    # ETCD Server Certificate and Private-Key
+    - { src_file: 'etcd-server-cert.pem', dest_file: 'server.crt' }
+    - { src_file: 'etcd-server-cert-key.pem', dest_file: 'server.key' }
+    # ETCD Peer Certificate and Private-Key
+    - { src_file: 'etcd-peer-cert.pem', dest_file: 'peer.crt' }
+    - { src_file: 'etcd-peer-cert-key.pem', dest_file: 'peer.key' }
+    # ETCD Client Certificate and Private-Key
+    - { src_file: 'etcd-client-cert.pem', dest_file: 'client.crt' }
+    - { src_file: 'etcd-client-cert-key.pem', dest_file: 'client.key' }

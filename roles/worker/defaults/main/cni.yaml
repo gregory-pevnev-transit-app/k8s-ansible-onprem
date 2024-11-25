@@ -1,0 +1,63 @@
+
+#
+# Common
+#
+
+# Running as root -> Gives complete access to the worker-node
+cni_owner: "root"
+cni_group: "root"
+
+#
+# Installation
+#
+
+cni_version: "1.5.1"
+
+cni_arch: "amd64"
+cni_os: "linux"
+
+cni_url: "https://github.com/containernetworking/plugins/releases/download/v{{ cni_version }}/{{ cni_archive }}"
+cni_archive: "cni-plugins-{{ cni_os }}-{{ cni_arch }}-v{{ cni_version }}.tgz"
+
+# Directory to store download archive
+cni_tmp_directory: "/tmp/cni"
+cni_tmp_archive: "{{ cni_tmp_directory }}/{{ cni_archive }}"
+
+# Directory to store the CNI plugins / binaries
+cni_bin_directory: "/opt/cni/bin"
+cni_bin_directory_mode: "0755"
+
+cni_binary_mode: "0755"
+
+# Plugins to install
+# Note: Only bridge and loopback CNI plugins are actually needed
+#   - Better to install all to make switching easier if needed
+cni_plugins:
+  - macvlan
+  - static
+  - vlan
+  - portmap
+  - host-local
+  - vrf
+  - bridge
+  - tuning
+  - firewall
+  - host-device
+  - sbr
+  - loopback
+  - dhcp
+  - ptp
+  - ipvlan
+  - bandwidth
+  - dummy
+  - tap
+
+#
+# Configuration
+#
+
+# Directory to store the configuration for CNI networking
+cni_conf_directory: "/etc/cni/net.d"
+cni_conf_directory_mode: "0755"
+
+cni_conf_file_mode: "0644"

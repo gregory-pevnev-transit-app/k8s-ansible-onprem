@@ -1,0 +1,16 @@
+runc_version: "1.1.14"
+
+runc_arch: "amd64"
+
+runc_url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/{{ runc_archive }}"
+runc_checksum: "sha256:https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.sha256sum"
+runc_archive: "runc.{{ runc_arch }}"
+
+# Running as root -> Gives complete access to the worker-node
+runc_owner: "root"
+runc_group: "root"
+
+runc_bin_directory: "/usr/local/bin"
+
+runc_binary: "{{ runc_bin_directory }}/runc"
+runc_binary_mode: "0755"

@@ -1,0 +1,11 @@
+- name: "ETCD user and group provisioning"
+  ansible.builtin.include_tasks:
+    file: "user-group.yaml"
+
+- name: "ETCD installation"
+  ansible.builtin.include_tasks:
+    file: "installation.yaml"
+
+- name: "ETCD service setup"
+  ansible.builtin.include_tasks:
+    file: "service.yaml"

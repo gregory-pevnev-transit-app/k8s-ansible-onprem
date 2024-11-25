@@ -1,0 +1,36 @@
+- name: "K8s Worker Kubelet configuration directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_worker_kubelet_conf_dir }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: "{{ k8s_worker_conf_dir_mode }}"
+    state: directory
+
+- name: "K8s Worker Kubelet kube-config authentication setup"
+  ansible.builtin.include_tasks:
+    file: "kubelet/kubelet-auth.yaml"
+
+- name: "K8s Worker Kubelet configuration file provisioning"
+  ansible.builtin.template:
+    src: kubernetes/kubelet-config.yaml.j2
+    dest: "{{ k8s_worker_kubelet_conf_file }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: "{{ k8s_worker_conf_file_mode }}"
+
+- name: "K8s Worker Kubelet SystemD service-file provisioning"
+  ansible.builtin.template:
+    src: systemd/kubelet.service.j2
+    dest: "/etc/systemd/system/{{ k8s_kubelet_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart kubelet
+
+- name: "K8s Worker Kubelet SystemD service activation"
+  ansible.builtin.service:
+    name: "{{ k8s_kubelet_service_name }}"
+    enabled: true
+    state: started

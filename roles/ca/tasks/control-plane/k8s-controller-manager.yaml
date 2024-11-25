@@ -1,0 +1,48 @@
+- name: "K8s Controller-Manager CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/control-plane/k8s-controller-manager-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-controller-manager-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s Controller-Manager Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=k8s-ca-config.json \
+      -profile=kubernetes \
+      -ca=k8s-ca.pem \
+      -ca-key=k8s-ca-key.pem \
+      k8s-controller-manager-cert-csr.json \
+    | cfssljson -bare k8s-controller-manager-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/k8s-controller-manager-cert-key.pem"
+
+- name: "K8s Controller-Manager Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - k8s-controller-manager-cert.pem
+    - k8s-controller-manager-cert-key.pem
+    - k8s-controller-manager-cert.csr
+
+- name: "K8s Controller-Manager PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-controller-manager-cert.pem', dest_file: 'controller-manager.crt' }
+    - { src_file: 'k8s-controller-manager-cert-key.pem', dest_file: 'controller-manager.key' }

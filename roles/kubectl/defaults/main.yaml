@@ -1,0 +1,11 @@
+kubectl_version: "1.27.15"
+
+kubectl_os: "linux"
+kubectl_arch: "amd64"
+
+kubectl_checksum_binary: "sha512:https://cdn.dl.k8s.io/release/v{{ kubectl_version }}/bin/{{ kubectl_os }}/{{ kubectl_arch }}/kubectl.sha512"
+
+# Important: Change accordingly
+kubectl_owner: "root"
+kubectl_group: "root"
+kubectl_bin_directory: "/usr/local/bin"

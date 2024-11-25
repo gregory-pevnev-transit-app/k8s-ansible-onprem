@@ -1,0 +1,36 @@
+# Generating:
+#   - Local kube-config -> For connecting to the API-Server via the Localhost => Used locally
+#   - Remote kube-config -> For connecting to the API-Server via the Public-IP => Downloaded for external uses
+# Important: Both use the same user and the same Control-Plane - Just with different endpoints
+
+#
+# Kube-Config files generation
+#
+
+# Generating Kube-Config files in a separate directory -> Copying / Downloading separately
+k8s_admin_conf_dir: "/etc/kubernetes/admin"
+k8s_admin_conf_dir_mode: "0700"
+k8s_admin_conf_owner: "root"
+k8s_admin_conf_group: "root"
+
+k8s_admin_conf_local_kube_config_file: "{{ k8s_admin_conf_dir }}/local-admin-kube-config.yaml"
+k8s_admin_conf_remote_kube_config_file: "{{ k8s_admin_conf_dir }}/remote-admin-kube-config.yaml"
+
+k8s_admin_user_name: "admin"
+
+k8s_admin_context_name: "default" # Having the context be the default
+
+k8s_admin_confs:
+  - kube_config_file: "{{ k8s_admin_conf_local_kube_config_file }}"
+    k8s_api_endpoint: "{{ k8s_api_endpoint_local }}"
+  - kube_config_file: "{{ k8s_admin_conf_remote_kube_config_file }}"
+    k8s_api_endpoint: "{{ k8s_api_endpoint_public }}"
+
+#
+# Local Kube-Config directory and file for the current user
+#
+
+k8s_local_kube_config_dir: "{{ k8s_local_kube_config_base_dir }}/.kube"
+k8s_local_kube_config_file: "{{ k8s_local_kube_config_dir }}/config"
+
+k8s_local_kube_config_dir_mode: "0750"

@@ -1,0 +1,8 @@
+- name: "runC Installation"
+  ansible.builtin.get_url:
+    url: "{{ runc_url }}"
+    dest: "{{ runc_binary }}"
+    checksum: "{{ runc_checksum }}"
+    mode: "{{ runc_binary_mode }}"
+    owner: "{{ runc_owner }}"
+    group: "{{ runc_group }}"

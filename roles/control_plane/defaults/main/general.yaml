@@ -1,0 +1,85 @@
+#
+# K8s user and group
+#
+
+k8s_user: "k8s"
+k8s_group: "k8s"
+
+#
+# K8s installation settings
+#
+
+k8s_version: "1.27.15"
+
+k8s_arch: "amd64"
+k8s_os: "linux"
+
+k8s_binaries:
+  - kube-apiserver
+  - kube-controller-manager
+  - kube-scheduler
+  - kubectl
+
+k8s_bin_dir: "/usr/local/bin"
+
+#
+# K8s configuration directory
+#
+
+k8s_conf_base_dir: "/etc/kubernetes/config"
+
+k8s_conf_dir_mode: "0750"
+
+#
+# K8s logging settings
+#  - All defaults logs are written to JournalD
+#  - Audits are written to a separate log-directory
+#
+
+k8s_log_base_dir: "/var/log/kubernetes"
+
+k8s_log_dir_mode: "0750"
+
+#
+# K8s kube-config files
+#
+
+k8s_kube_config_file_mode: "0640"
+
+#
+# K8s services settings
+#
+
+k8s_service_options:
+  # TODO: Customize for each service
+  # TODO: CPU-Shares and Memory-Limit - Separate for each service
+  - User={{ k8s_user }}
+  - Group={{ k8s_group }}
+  - Restart=always
+  - RestartSec=5
+  - NoNewPrivileges=true
+  - ProtectHome=true
+  - PrivateTmp=true
+  - PrivateUsers=true
+  - ProtectSystem=full
+  - ProtectClock=true
+  - ProtectKernelModules=true
+  - ProtectKernelTunables=true
+  - ProtectKernelLogs=true
+  - ProtectControlGroups=true
+  - ProtectHostname=true
+  - ProtectControlGroups=true
+  - RestrictNamespaces=true
+  - RestrictRealtime=true
+  - RestrictSUIDSGID=true
+  - CapabilityBoundingSet=~CAP_SYS_PTRACE
+  - CapabilityBoundingSet=~CAP_KILL
+  - CapabilityBoundingSet=~CAP_MKNOD
+  - CapabilityBoundingSet=~CAP_SYS_CHROOT
+  - CapabilityBoundingSet=~CAP_SYS_ADMIN
+  - CapabilityBoundingSet=~CAP_SETUID
+  - CapabilityBoundingSet=~CAP_SETGID
+  - CapabilityBoundingSet=~CAP_SETPCAP
+  - CapabilityBoundingSet=~CAP_CHOWN
+  - SystemCallFilter=@system-service
+  - ReadWritePaths=-/usr/libexec/kubernetes

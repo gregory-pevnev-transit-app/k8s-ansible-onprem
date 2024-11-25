@@ -1,0 +1,56 @@
+- name: "K8s Control-Plane user and group provisioning"
+  ansible.builtin.include_tasks:
+    file: "user-group.yaml"
+
+- name: "K8s Control-Plane installation"
+  ansible.builtin.include_tasks:
+    file: "installation.yaml"
+
+- name: "K8s Control-Plane base configuration directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_conf_base_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_conf_dir_mode }}"
+    state: directory
+- name: "K8s Control-Plane base logs directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_log_base_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_log_dir_mode }}"
+    state: directory
+
+- name: "K8s Encryption setup"
+  ansible.builtin.include_tasks:
+    file: "encryption.yaml"
+
+- name: "K8s API-Server setup"
+  ansible.builtin.include_tasks:
+    file: "api-server/api-server.yaml"
+
+- name: "K8s Scheduler setup"
+  ansible.builtin.include_tasks:
+    file: "scheduler/scheduler.yaml"
+
+- name: "K8s Controller-Manager setup"
+  ansible.builtin.include_tasks:
+    file: "controller-manager/controller-manager.yaml"
+
+- name: "K8s Admin-user setup"
+  ansible.builtin.include_tasks:
+    file: "admin/admin.yaml"
+
+- name: "K8s API-Server Kubelet access setup"
+  ansible.builtin.include_tasks:
+    file: "api-server/api-server-kubelet.yaml"
+
+# Ensuring that SystemD is reloaded and all the control-plane services are running
+- name: "Flushing handlers"
+  ansible.builtin.meta: flush_handlers
+
+- name: "K8s Control-Plane stabilization waiting"
+  ansible.builtin.wait_for:
+    host: "127.0.0.1"
+    port: "{{ k8s_api_endpoint_port }}"
+    delay: 3 # Waiting for 3 minutes at most (Initial start-up)

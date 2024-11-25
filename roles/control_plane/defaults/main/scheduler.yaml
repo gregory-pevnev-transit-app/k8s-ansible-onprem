@@ -1,0 +1,31 @@
+k8s_scheduler_service_name: "kube-scheduler"
+
+#
+# Configuration files
+#
+
+k8s_scheduler_conf_dir: "{{ k8s_conf_base_dir }}/kube-scheduler"
+
+k8s_scheduler_kube_config_file: "{{ k8s_scheduler_conf_dir }}/kubeconfig"
+
+#
+# Settings
+#
+
+k8s_scheduler_settings:
+  # Using the K8s CA for authentication of requests
+  "requestheader-client-ca-file": "{{ k8s_pki_directory }}/ca.crt" 
+  # Only being accessible locally by oteher control-plane components
+  "bind-address": "127.0.0.1"
+  "secure-port": "10259"
+  # Using the provisioned kube-config for the scheduler
+  "kubeconfig": "{{ k8s_scheduler_kube_config_file }}"
+  "authentication-kubeconfig": "{{ k8s_scheduler_kube_config_file }}"
+  "authorization-kubeconfig": "{{ k8s_scheduler_kube_config_file }}"
+  # Settings
+  # 1) Not performing elections (Single-node cluster)
+  "leader-elect": "false"
+  # 2) Not flushing logs all the time
+  "log-flush-frequency": "15s"
+
+  

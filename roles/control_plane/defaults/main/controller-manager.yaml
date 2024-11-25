@@ -1,0 +1,43 @@
+k8s_controller_manager_service_name: "kube-controller-manager"
+
+#
+# Configuration files
+#
+
+k8s_controller_manager_conf_dir: "{{ k8s_conf_base_dir }}/kube-controller-manager"
+
+k8s_controller_manager_kube_config_file: "{{ k8s_controller_manager_conf_dir }}/kubeconfig"
+
+#
+# Settings
+#
+
+k8s_controller_manager_settings:
+  # Specifying the name of the cluster
+  "cluster-name": "{{ k8s_cluster_name }}"
+  # Certificates: API-Server and SA
+  "cluster-signing-cert-file": "{{ k8s_pki_directory }}/apiserver.crt"
+  "cluster-signing-key-file": "{{ k8s_pki_directory }}/apiserver.key"
+  "service-account-private-key-file": "{{ k8s_pki_directory }}/sa.key"
+  "use-service-account-credentials": "true"
+  # Using the K8s CA for all certificate-related operations
+  # TODO: "client-ca-file"?
+  "root-ca-file": "{{ k8s_pki_directory }}/ca.crt" 
+  "requestheader-client-ca-file": "{{ k8s_pki_directory }}/ca.crt" 
+  # Only being accessible locally by oteher control-plane components
+  "bind-address": "127.0.0.1"
+  "secure-port": "10257"
+  # Using the provisioned kube-config for the controller-manager
+  "kubeconfig": "{{ k8s_controller_manager_kube_config_file }}"
+  "authentication-kubeconfig": "{{ k8s_controller_manager_kube_config_file }}"
+  "authorization-kubeconfig": "{{ k8s_controller_manager_kube_config_file }}"
+  # CIDRs: Allocate to nodes automatically
+  "cluster-cidr": "{{ k8s_pods_ip_range }}"
+  "service-cluster-ip-range": "{{ k8s_services_ip_range }}"
+  "allocate-node-cidrs": "true"
+  # Settings
+  # 1) Not performing elections (Single-node cluster)
+  "leader-elect": "false"
+  # 2) Not flushing logs all the time
+  "log-flush-frequency": "15s"
+  # TODO: --controllers=*,bootstrapsigner,tokencleaner

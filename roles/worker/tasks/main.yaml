@@ -1,0 +1,39 @@
+# - name: "K8s worker kernel-parameters configuring"
+#   ansible.builtin.include_tasks:
+#     file: "kernel.yaml"
+
+# - name: "K8s worker configuration directory setup"
+#   ansible.builtin.file:
+#     path: "{{ k8s_worker_conf_base_dir }}"
+#     owner: "{{ k8s_worker_user }}"
+#     group: "{{ k8s_worker_group }}"
+#     mode: "{{ k8s_worker_conf_dir_mode }}"
+#     state: directory
+
+# - name: "K8s worker PKI setup"
+#   ansible.builtin.include_tasks:
+#     file: "pki.yaml"
+
+# - name: "Installing CNI plugins and configuring CNI networking"
+#   ansible.builtin.include_tasks:
+#     file: "cni/cni.yaml"
+
+# - name: "Installing ContainerD and configuring it as a CRI"
+#   ansible.builtin.include_tasks:
+#     file: "containerd/containerd.yaml"
+
+# - name: "Installing K8s Worker packages and binaries"
+#   ansible.builtin.include_tasks:
+#     file: "installation.yaml"
+
+# - name: "K8s Worker Kubelet setup"
+#   ansible.builtin.include_tasks:
+#     file: "kubelet/kubelet.yaml"
+
+- name: "K8s Worker Kube-Proxy setup"
+  ansible.builtin.include_tasks:
+    file: "kube-proxy/kube-proxy.yaml"
+
+# Ensuring that SystemD is reloaded and all the control-plane services are running
+- name: "Flushing handlers"
+  ansible.builtin.meta: flush_handlers

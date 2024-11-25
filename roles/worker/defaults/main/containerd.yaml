@@ -1,0 +1,72 @@
+
+#
+# Common
+#
+
+# Running as root -> Gives complete access to the worker-node
+containerd_owner: "root"
+containerd_owner_uid: 0
+containerd_group: "root"
+containerd_group_gid: 0
+
+#
+# Installation
+#
+
+containerd_version: "1.7.22"
+
+containerd_arch: "amd64"
+containerd_os: "linux"
+
+containerd_url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/{{ containerd_archive }}"
+containerd_archive: "containerd-{{ containerd_version }}-{{ containerd_os }}-{{ containerd_arch }}.tar.gz"
+
+containerd_tmp_directory: "/tmp/containerd"
+containerd_tmp_archive: "{{ containerd_tmp_directory }}/{{ containerd_archive }}"
+
+containerd_binary_directory: "/usr/local/bin"
+
+containerd_binary_mode: "0755"
+
+containerd_binaries:
+  - containerd
+  - containerd-shim
+  - containerd-shim-runc-v1
+  - containerd-shim-runc-v2
+  - ctr
+containerd_binaries_src_directory: "/bin"
+
+#
+# Configuration
+#
+
+containerd_service_name: "containerd"
+
+containerd_users_group: "containerd-users"
+
+# Keeping configuration-files and certificates used by ContainerD
+containerd_config_directory: "/etc/containerd"
+containerd_config_file: "{{ containerd_config_directory }}/config.toml"
+containerd_config_certs_directory: "{{ containerd_config_directory }}/certs.d"
+containerd_config_keys_directory: "{{ containerd_config_directory }}/ocicrypt/keys"
+containerd_config_key_provider_config_file: "{{ containerd_config_directory }}/ocicrypt/ocicrypt_keyprovider.conf"
+# Keeping container data (Images / Layers / Volumes / etc.)
+containerd_data_directory: "/var/lib/containerd"
+# Keeping sockets and state-files
+containerd_state_directory: "/run/containerd"
+containerd_socket_file: "{{ containerd_state_directory }}/containerd.sock"
+
+containerd_service_settings:
+  # Running as the root / admin user (Needs full access to the node)
+  "User": "{{ k8s_worker_user }}"
+  "Group": "{{ k8s_worker_group }}"
+  "ExecStart": "{{ containerd_binary_directory }}/containerd"
+  "Restart": "always"
+  "RestartSec": "5"
+  "Type": "notify"
+  "Delegate": "yes"
+  "KillMode": "process"
+  "OOMScoreAdjust": "-999"
+  "LimitNOFILE": "1048576"
+  "LimitNPROC": "infinity"
+  "LimitCORE": "infinity"

@@ -1,0 +1,13 @@
+- name: "Enabling kernel modules for running K8s workloads"
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+    persistent: present
+  loop: "{{ k8s_worker_node_kernel_modules }}"
+
+- name: "Configuring SysCTL for K8s workloads communication"
+  ansible.posix.sysctl:
+    name: "{{ item }}"
+    value: "{{ k8s_worker_node_sysctl_settings[item] }}"
+    sysctl_set: true
+  loop: "{{ k8s_worker_node_sysctl_settings | flatten }}"

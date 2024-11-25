@@ -1,0 +1,14 @@
+kind: KubeProxyConfiguration
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+bindAddress: {{ k8s_worker_node_private_ip }}
+clientConnection:
+  kubeconfig: "{{ k8s_worker_kubeproxy_kubeconfig }}"
+healthzBindAddress: {{ k8s_worker_node_private_ip }}:10256
+clusterCIDR: "{{ k8s_pods_ip_range }}"
+# Using IPVS instead of IP-Tables for Services implementation
+#   -> Using Round-Robin for Load-Balancing
+mode: "ipvs"
+ipvs:
+  scheduler: "rr"
+  minSyncPeriod: 0s
+  syncPeriod: 2s

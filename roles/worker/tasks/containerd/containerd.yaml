@@ -1,0 +1,10 @@
+- name: "runC installation"
+  ansible.builtin.include_tasks:
+    file: "containerd/runc-installation.yaml"
+
+- name: "ContainerD installation"
+  ansible.builtin.include_tasks:
+    file: "containerd/containerd-installation.yaml"
+- name: "ContainerD configuration"
+  ansible.builtin.include_tasks:
+    file: "containerd/containerd-configuration.yaml"

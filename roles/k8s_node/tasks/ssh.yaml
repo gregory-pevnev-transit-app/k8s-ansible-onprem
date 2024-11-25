@@ -1,0 +1,8 @@
+- name: SSH configuration
+  ansible.builtin.lineinfile:
+    dest: "/etc/ssh/sshd_config"
+    regexp: "{{ item }}"
+    line: "{{ sshd_settings[item] }}"
+    state: "present"
+  notify: "Restart SSH"
+  loop: "{{ sshd_settings | flatten }}"

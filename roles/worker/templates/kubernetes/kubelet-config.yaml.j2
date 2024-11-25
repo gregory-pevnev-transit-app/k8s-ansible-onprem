@@ -1,0 +1,84 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+# TODO:
+#   1. SystemD-Resolved config (resolvConf)
+#   2. Logging config
+#
+# Worker Node:
+#  - Using the Private-IP address (Running in the same network)
+#  - Opening to the API-Server on the well-known port
+#
+#address: {{ k8s_worker_node_private_ip }}
+address: 0.0.0.0
+port: 10250
+healthzBindAddress: "{{ k8s_worker_node_private_ip }}"
+healthzPort: 10248
+#
+# Control-Plane:
+#  - Using the PKI files for accessing the Control-Plane (Authentication / Authorization / Communication)
+#  - Registering the current node as a Worker-Node
+#
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "{{ k8s_worker_pki_dir }}/ca.crt"
+authorization:
+  mode: Webhook
+tlsCertFile: "{{ k8s_worker_pki_dir }}/kubelet.crt"
+tlsPrivateKeyFile: "{{ k8s_worker_pki_dir }}/kubelet.key"
+registerNode: true
+#
+# CRI:
+#  - Using the ContainerD socket as the CRI-Endpoint
+#  - Using SystemD to prevent inconsistencies
+#  - Allowing concurrent image pulls
+#
+containerRuntimeEndpoint: "unix://{{ containerd_socket_file }}"
+cgroupDriver: systemd
+runtimeRequestTimeout: "1h"
+serializeImagePulls: false
+#
+# DNS: Using generic DNS configuration
+# TODO: Outsource + Make dependent on Services / Other config
+#
+clusterDomain: cluster.local
+clusterDNS:
+- 172.17.0.10
+#
+# Swapping: Enabling running with the swap-space present
+#  -> Taking the swap-usage into memory-limit estimation
+#
+failSwapOn: false
+featureGates:
+  NodeSwap: true
+memorySwap:
+  swapBehavior: LimitedSwap
+#
+# Worker-Node resources settings: Allocating specific amount of resources to the K8s workloads
+#  - Number of pods cannot exceed 110 (Maximum in K8s)
+# TODO: CUSTOMIZE
+#
+maxPods: 110
+kubeReserved:
+  memory: "500Mi"
+  cpu: "0.25"
+systemReserved:
+  memory: "250Mi"
+  cpu: "0.25"
+#
+# Evictions settings:
+#  - Using MemCG instead of polling for the amount of memory-used for memory-evictions (Faster)
+#  - Should terminate pods with SIGKILL right away as soon as eviction-resources are used
+#  - Node should only enter the pressure-state for 5s (Single-Node cluster)
+#
+kernelMemcgNotification: true
+evictionMaxPodGracePeriod: 0
+evictionPressureTransitionPeriod: "5s"
+evictionHard:
+  memory.available: "100Mi"
+  nodefs.available: "1Gi"
+  pid.available: "10"
+

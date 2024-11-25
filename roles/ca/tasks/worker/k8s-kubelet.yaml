@@ -1,0 +1,60 @@
+# Host-Names need to be provided as a comma-separated string -> Composing it
+- name: "K8s Kubelet host-names / IP-Addresses (SAN) - Compose"
+  ansible.builtin.set_fact:
+    k8s_kubelet_hosts: >-
+      {% set comma = joiner(",") %}{% for item in k8s_kubelet_hosts_list -%}
+        {{ comma() }}{{ item }}
+      {%- endfor %}
+- name: "K8s Kubelet host-names / IP-Addresses (SAN) - Print"
+  ansible.builtin.debug:
+    var: k8s_kubelet_hosts
+
+- name: "K8s Kubelet CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/worker/k8s-kubelet-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-kubelet-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s Kubelet Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=k8s-ca-config.json \
+      -profile=kubernetes \
+      -ca=k8s-ca.pem \
+      -ca-key=k8s-ca-key.pem \
+      -hostname={{ k8s_kubelet_hosts }} \
+      k8s-kubelet-cert-csr.json \
+    | cfssljson -bare k8s-kubelet
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/k8s-kubelet-key.pem"
+
+- name: "K8s Kubelet Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - k8s-kubelet.pem
+    - k8s-kubelet-key.pem
+    - k8s-kubelet.csr
+
+- name: "K8s Kubelet PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_worker_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-kubelet.pem', dest_file: 'kubelet.crt' }
+    - { src_file: 'k8s-kubelet-key.pem', dest_file: 'kubelet.key' }

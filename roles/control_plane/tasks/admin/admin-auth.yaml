@@ -1,0 +1,92 @@
+#
+# Kube-Config files creation
+#
+
+# Step 0. Creating a directory for provisioning kube-config files
+- name: "K8s Admin kube-config files directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_admin_conf_dir }}"
+    state: directory
+    owner: "{{ k8s_admin_conf_owner }}"
+    group: "{{ k8s_admin_conf_group }}"
+    mode: "{{ k8s_admin_conf_dir_mode }}"
+
+# Step 1. Setting the Cluster - Embedding the CA used (Allows downloading)
+- name: "K8s Admin kube-config generation (Setting the cluster)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-cluster {{ k8s_cluster_name }} \
+      --kubeconfig={{ item.kube_config_file }} \
+      --server={{ item.k8s_api_endpoint }} \
+      --certificate-authority={{ k8s_pki_directory }}/ca.crt \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+  loop: "{{ k8s_admin_confs }}"
+
+# Step 2. Setting the User (Admin) - Embedding the Certificate and Key used (Allows downloading)
+- name: "K8s Admin kube-config generation (Setting the user credentials)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-credentials {{ k8s_admin_user_name }} \
+      --kubeconfig={{ item.kube_config_file }} \
+      --client-certificate={{ k8s_pki_directory }}/admin.crt \
+      --client-key={{ k8s_pki_directory }}/admin.key \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+  loop: "{{ k8s_admin_confs }}"
+
+# Step 3. Setting the Context (Admin-User with Remote / Local API-Server)
+- name: "K8s Admin kube-config generation (Setting the context)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-context {{ k8s_admin_context_name }} \
+      --kubeconfig={{ item.kube_config_file }} \
+      --cluster={{ k8s_cluster_name }} \
+      --user={{ k8s_admin_user_name }}
+  args:
+    executable: /bin/bash
+  loop: "{{ k8s_admin_confs }}"
+
+# Step 4. Setting the Context as the default
+- name: "K8s Admin kube-config generation (Setting the context as the default)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config use-context {{ k8s_admin_context_name }} \
+      --kubeconfig={{ item.kube_config_file }}
+  args:
+    executable: /bin/bash
+  loop: "{{ k8s_admin_confs }}"
+
+# Step 5. Setting kube-config files permissions
+- name: "K8s Admin kube-config generation (Setting the file permissions)"
+  ansible.builtin.file:
+    path: "{{ item.kube_config_file }}"
+    owner: "{{ k8s_admin_conf_owner }}"
+    group: "{{ k8s_admin_conf_group }}"
+    mode: "{{ k8s_kube_config_file_mode }}"
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop: "{{ k8s_admin_confs }}"
+
+#
+# Local Kube-Config setup
+#
+
+- name: "Local Kube-Config directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_local_kube_config_dir }}"
+    state: directory
+    owner: "{{ k8s_local_kube_conf_owner }}"
+    group: "{{ k8s_local_kube_conf_group }}"
+    mode: "{{ k8s_local_kube_config_dir_mode }}"
+
+- name: "Local Kube-Config file setup"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_admin_conf_local_kube_config_file }}"
+    dest: "{{ k8s_local_kube_config_file }}"
+    owner: "{{ k8s_local_kube_conf_owner }}"
+    group: "{{ k8s_local_kube_conf_group }}"
+    mode: "{{ k8s_kube_config_file_mode }}"

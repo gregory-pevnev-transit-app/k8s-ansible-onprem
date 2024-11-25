@@ -1,0 +1,11 @@
+- name: Configuring APT
+  ansible.builtin.include_tasks:
+    file: "apt.yaml"
+
+- name: Configuring SSH
+  ansible.builtin.include_tasks:
+    file: "ssh.yaml"
+
+- name: Configuring UFW
+  ansible.builtin.include_tasks:
+    file: "ufw.yaml"

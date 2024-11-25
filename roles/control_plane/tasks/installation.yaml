@@ -1,0 +1,15 @@
+- name: "K8s Control-Plane binaries downloading"
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/v{{ k8s_version }}/bin/{{ k8s_os }}/{{ k8s_arch }}/{{ item }}"
+    checksum: "sha512:https://dl.k8s.io/v{{ k8s_version }}/bin/{{ k8s_os }}/{{ k8s_arch }}/{{ item }}.sha512"
+    dest: "{{ k8s_bin_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "0755"
+  with_items:
+    - "{{ k8s_binaries }}"
+  # TODO: RE-ENABLE
+  # notify:
+  #   - Restart kube-apiserver
+  #   - Restart kube-controller-manager
+  #   - Restart kube-scheduler

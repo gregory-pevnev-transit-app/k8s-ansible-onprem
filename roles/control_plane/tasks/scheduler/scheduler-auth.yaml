@@ -1,0 +1,53 @@
+# Step 1. Setting the Cluster
+- name: "K8s Scheduler kube-config generation (Setting the cluster)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-cluster {{ k8s_cluster_name }} \
+      --kubeconfig={{ k8s_scheduler_kube_config_file }} \
+      --server={{ k8s_api_endpoint_local }} \
+      --certificate-authority={{ k8s_pki_directory }}/ca.crt \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+
+# Step 2. Setting the User (K8s Scheduler) - Embedding the Certificate and Key used (Allows downloading)
+- name: "K8s Scheduler kube-config generation (Setting the user credentials)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-credentials system:kube-scheduler \
+      --kubeconfig={{ k8s_scheduler_kube_config_file }} \
+      --client-certificate={{ k8s_pki_directory }}/scheduler.crt \
+      --client-key={{ k8s_pki_directory }}/scheduler.key \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+
+# Step 3. Setting the Context (K8s Scheduler with Local API-Server)
+- name: "K8s Scheduler kube-config generation (Setting the context)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-context default \
+      --kubeconfig={{ k8s_scheduler_kube_config_file }} \
+      --cluster={{ k8s_cluster_name }} \
+      --user=system:kube-scheduler
+  args:
+    executable: /bin/bash
+
+# Step 4. Setting the Context as the default
+- name: "K8s Scheduler kube-config generation (Setting the context as the default)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config use-context default \
+      --kubeconfig={{ k8s_scheduler_kube_config_file }}
+  args:
+    executable: /bin/bash
+
+# Step 5. Setting kube-config files permissions
+- name: "K8s Scheduler kube-config generation (Setting the file permissions)"
+  ansible.builtin.file:
+    path: "{{ k8s_scheduler_kube_config_file }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_kube_config_file_mode }}"
+    modification_time: "preserve"
+    access_time: "preserve"

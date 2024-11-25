@@ -1,0 +1,34 @@
+# Copying the PKI files used by the K8s Worker (Kubelet and Kube-Proxy)
+
+# 1. Creating a directory for the PKI files
+- name: "Setting up Worker PKI configuration directory for CAs and Certificates"
+  ansible.builtin.file:
+    path: "{{ k8s_worker_pki_dir }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: "{{ k8s_worker_conf_dir_mode }}"
+    state: directory
+
+# 2. Copying the Worker PKI files (Downloaded from the Control-Plane)
+- name: "Copying Worker PKI files"
+  ansible.builtin.copy:
+    src: "{{ k8s_worker_pki_workstation_path }}/{{ item }}"
+    dest: "{{ k8s_worker_pki_dir }}/{{ item }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: 0660
+  loop:
+    - ca.crt
+    - ca.key
+    - kubelet.crt
+    - kubelet.key
+    - kube-proxy.crt
+    - kube-proxy.key
+
+# Note: Better to not enable - Makes it only possible to run once
+# 3. Cleaning up the local Worker PKI files
+# - name: "Cleaning up local Worker PKI files"
+#   ansible.builtin.file:
+#     state: absent
+#     path: "{{ k8s_worker_pki_workstation_path }}"
+#   delegate_to: "127.0.0.1"

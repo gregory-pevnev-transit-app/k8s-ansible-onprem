@@ -1,0 +1,60 @@
+# Host-Names need to be provided as a comma-separated string -> Composing it
+- name: "K8s API-Server host-names / IP-Addresses (SAN) - Compose"
+  ansible.builtin.set_fact:
+    k8s_apiserver_hosts: >-
+      {% set comma = joiner(",") %}{% for item in k8s_apiserver_hosts_list -%}
+        {{ comma() }}{{ item }}
+      {%- endfor %}
+- name: "K8s API-Server host-names / IP-Addresses (SAN) - Print"
+  ansible.builtin.debug:
+    var: k8s_apiserver_hosts
+
+- name: "K8s API-Server CSR configuration-file provisioning"
+  ansible.builtin.template:
+    src: "k8s/control-plane/k8s-apiserver-cert-csr.json.j2"
+    dest: "{{ k8s_ca_certificate_conf_directory }}/k8s-apiserver-cert-csr.json"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_file_perm }}"
+
+- name: "K8s API-Server Certificate provisioning"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    set -o pipefail; \
+    cfssl gencert \
+      -config=k8s-ca-config.json \
+      -profile=kubernetes \
+      -ca=k8s-ca.pem \
+      -ca-key=k8s-ca-key.pem \
+      -hostname={{ k8s_apiserver_hosts }} \
+      k8s-apiserver-cert-csr.json \
+    | cfssljson -bare k8s-apiserver-cert
+  args:
+    executable: "/bin/bash"
+    chdir: "{{ k8s_ca_certificate_conf_directory }}"
+    creates: "{{ k8s_ca_certificate_conf_directory }}/k8s-apiserver-cert-key.pem"
+
+- name: "K8s API-Server Certificate files permissions"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}/{{ item }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+    modification_time: "preserve"
+    access_time: "preserve"
+  loop:
+    - k8s-apiserver-cert.pem
+    - k8s-apiserver-cert-key.pem
+    - k8s-apiserver-cert.csr
+
+- name: "K8s API-Server PKI files copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ k8s_ca_certificate_conf_directory }}/{{ item.src_file }}"
+    dest: "{{ k8s_pki_directory }}/{{ item.dest_file }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: '{{ k8s_ca_certificate_file_perm }}'
+  loop:
+    - { src_file: 'k8s-apiserver-cert.pem', dest_file: 'apiserver.crt' }
+    - { src_file: 'k8s-apiserver-cert-key.pem', dest_file: 'apiserver.key' }

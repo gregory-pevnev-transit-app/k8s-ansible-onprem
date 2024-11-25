@@ -1,0 +1,21 @@
+- name: "K8s worker OS packages installation"
+  ansible.builtin.apt:
+    state: present
+    pkg: "{{ item }}"
+  loop: "{{ k8s_worker_os_packages }}"
+
+- name: "K8s worker binaries installation"
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/v{{ k8s_worker_release }}/bin/{{ k8s_worker_os }}/{{ k8s_worker_arch }}/{{ item }}"
+    checksum: "sha512:https://dl.k8s.io/v{{ k8s_worker_release }}/bin/{{ k8s_worker_os }}/{{ k8s_worker_arch }}/{{ item }}.sha512"
+    dest: "{{ k8s_worker_bin_dir }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: "0755"
+  with_items:
+    - "{{ k8s_worker_binaries }}"
+  notify:
+    - Restart kube-proxy
+    - Restart kubelet
+
+

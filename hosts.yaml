@@ -1,0 +1,23 @@
+all:
+  hosts:
+    # Control-Plane Node
+    k8s_control_plane_node:
+    # Worker Node
+    k8s_worker_node:
+
+# Setting up certificates on the control-plane node
+ca:
+  hosts:
+    k8s_control_plane_node:
+
+# Cluster control-plane and worker nodes
+k8s_cluster:
+  hosts:
+    k8s_control_plane_node:
+    k8s_worker_node:
+
+# Setting up KubeCTL on the control-plane node
+kubectl:
+  hosts:
+    k8s_control_plane_node:
+

@@ -1,0 +1,51 @@
+# Important: API-Server uses the host-names of Worker-Nodes to access them by default
+#   -> Setting up translation of the host-name to the private IP
+- name: "K8s API-Server Kubelet access via the host-name"
+  ansible.builtin.lineinfile:
+    dest: /etc/hosts
+    line: "{{ k8s_worker_node_private_ip }} {{ k8s_worker_node_hostname }}"
+    state: present
+
+#
+# Provisioning a Cluster-Role and a Cluster-Role-Binding for the K8s API-Server
+#   -> Allows connecting to Kubelets and acting as an admin
+# Important: Applying the CR and CRB using the admin-user kube-config
+#
+
+- name: "K8s API-Server Kubelet access RBAC directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_apiserver_rbac_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_apiserver_rbac_dir_mode }}"
+    state: directory
+
+- name: "K8s API-Server Kubelet access Cluster-Role file provisioning"
+  ansible.builtin.template:
+    src: "rbac/kube-apiserver-to-kubelet-cr.yaml.j2"
+    dest: "{{ k8s_apiserver_rbac_dir }}/kube-apiserver-to-kubelet-cr.yaml"
+    mode: 0644
+
+- name: "K8s API-Server Kubelet access Cluster-Role-Binding file provisioning"
+  ansible.builtin.template:
+    src: "rbac/kube-apiserver-to-kubelet-crb.yaml.j2"
+    dest: "{{ k8s_apiserver_rbac_dir }}/kube-apiserver-to-kubelet-crb.yaml"
+    mode: 0644
+
+- name: "K8s API-Server Kubelet access Cluster-Role applying with Admin-User"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl \
+      --kubeconfig={{ k8s_admin_conf_local_kube_config_file }} \
+      apply -f {{ k8s_apiserver_rbac_dir }}/kube-apiserver-to-kubelet-cr.yaml
+  args:
+    executable: /bin/bash
+
+- name: "K8s API-Server Kubelet access Cluster-Role-Binding applying with Admin-User"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl \
+      --kubeconfig={{ k8s_admin_conf_local_kube_config_file }} \
+      apply -f {{ k8s_apiserver_rbac_dir }}/kube-apiserver-to-kubelet-crb.yaml
+  args:
+    executable: /bin/bash

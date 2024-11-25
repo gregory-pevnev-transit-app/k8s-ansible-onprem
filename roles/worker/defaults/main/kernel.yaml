@@ -1,0 +1,27 @@
+#
+# Kernel-Modules to enable for K8s workloads
+#
+
+k8s_worker_node_kernel_modules:
+  # Overlay File-System (Allows containers to share layers)
+  - overlay
+  # Network-Filtering: Allows using IP-Tables and IPVS for virtual networking
+  - nf_conntrack
+  - br_netfilter
+  # IPVS modules (Using instead of IP-Tables)
+  - ip_vs
+  - ip_vs_rr
+  - ip_vs_wrr
+  - ip_vs_sh
+
+#
+# SysCTL configuration for net-filtering
+# Logic: Enables using net-filter for IP-forwarding + When using virtual-bridges with IP-Tables
+# Important: Even though IPVS is used by services, NF with IP-Tables still need to be supported - Used by the CNI Plugins
+#
+
+k8s_worker_node_sysctl_settings:
+  "net.ipv4.ip_forward": 1
+  "net.bridge.bridge-nf-call-iptables": 1
+  "net.bridge.bridge-nf-call-ip6tables": 1
+

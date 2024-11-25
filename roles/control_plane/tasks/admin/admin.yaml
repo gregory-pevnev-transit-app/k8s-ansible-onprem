@@ -1,0 +1,3 @@
+- name: "K8s Admin-user authentication setup"
+  ansible.builtin.include_tasks:
+    file: "admin/admin-auth.yaml"

@@ -1,0 +1,14 @@
+#jinja2: trim_blocks:False
+
+[Unit]
+Description=containerd container runtime
+Documentation=https://containerd.io
+After=network.target local-fs.target
+
+[Service]
+{%- for setting in containerd_service_settings %}
+{{ setting }}={{ containerd_service_settings[setting] }}
+{%- endfor %}
+
+[Install]
+WantedBy=multi-user.target

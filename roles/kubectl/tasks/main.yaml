@@ -1,0 +1,17 @@
+- name: Download kubectl binary
+  ansible.builtin.get_url:
+    url: "https://cdn.dl.k8s.io/release/v{{ kubectl_version }}/bin/{{ kubectl_os }}/{{ kubectl_arch }}/kubectl"
+    checksum: "{{ kubectl_checksum_binary }}"
+    dest: "/tmp"
+    mode: "0600"
+
+- name: Copy kubectl binary to destination directory
+  ansible.builtin.copy:
+    src: "/tmp/{{ item }}"
+    dest: "{{ kubectl_bin_directory }}/{{ item }}"
+    owner: "{{ kubectl_owner }}"
+    group: "{{ kubectl_group }}"
+    mode: "0755"
+    remote_src: true
+  with_items:
+    - kubectl

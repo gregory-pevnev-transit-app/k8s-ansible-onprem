@@ -1,0 +1,102 @@
+#
+# ETCD user and group
+#
+
+etcd_user: "etcd"
+
+etcd_group: "etcd"
+
+#
+# ETCD installation settings
+#
+
+etcd_version: "3.5.16"
+
+etcd_arch: "amd64"
+etcd_os: "linux"
+
+etcd_download_url: "https://github.com/etcd-io/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-{{ etcd_os }}-{{ etcd_arch }}.tar.gz"
+etcd_download_url_checksum: "sha256:https://github.com/coreos/etcd/releases/download/v{{ etcd_version }}/SHA256SUMS"
+
+etcd_download_dir: "/opt/etcd"
+
+etcd_bin_dir: "/usr/local/bin"
+
+#
+# ETCD configuration parameters
+#
+
+etcd_client_port: "2379"
+etcd_peer_port: "2380"
+etcd_metrics_port: "2381"
+
+etcd_data_dir: "/var/lib/etcd"
+etcd_data_dir_mode: "0700"
+
+etcd_settings:
+  # Cluster:
+  #  - Running ETCD as a single-node Cluster that is only accessible locally
+  #  - Name: Having the name of the ETCD cluster be the same as the name of the K8s cluster
+  "name": "{{ k8s_cluster_name }}"
+  "initial-cluster": "{{ k8s_cluster_name }}=https://127.0.0.1:{{ etcd_peer_port }}" 
+  # CA and Certificates for Server
+  "trusted-ca-file": "{{ k8s_etcd_pki_directory }}/ca.crt" # ETCD CA Certificate
+  "cert-file": "{{ k8s_etcd_pki_directory }}/server.crt" # ETCD Server Certificate
+  "key-file": "{{ k8s_etcd_pki_directory }}/server.key" # ETCD Server Private-Key
+  # CA and Certificates for Peers
+  # IMPORTNAT: IT IS NECESSARY EVEN IN A SINGLE-NODE SETUP
+  "peer-trusted-ca-file": "{{ k8s_etcd_pki_directory }}/ca.crt" # ETCD CA Certificate
+  "peer-cert-file": "{{ k8s_etcd_pki_directory }}/peer.crt" # ETCD Peer Certificate
+  "peer-key-file": "{{ k8s_etcd_pki_directory }}/peer.key" # ETCD Peer Private-Key
+  # Clients: ETCD should only be accessible locally
+  #  - Listening and advertising: "127.0.0.1"
+  #  - Using Client-Certificates for authentication
+  "listen-client-urls": "https://127.0.0.1:{{ etcd_client_port }}"
+  "advertise-client-urls": "https://127.0.0.1:{{ etcd_client_port }}"
+  "client-cert-auth": "true"
+  # Peers: ETCD should be configured to accept peers locally with Certificates
+  #   - Does NOT matter if running a single-node cluster (IT IS NECESSARY)
+  "initial-advertise-peer-urls": "https://127.0.0.1:{{ etcd_peer_port }}"
+  "listen-peer-urls": "https://127.0.0.1:{{ etcd_peer_port }}"
+  "peer-client-cert-auth": "true"
+  # Metrics: ETCD should allow collecting metrics locally via HTTP
+  "listen-metrics-urls": "http://127.0.0.1:{{ etcd_metrics_port }}"
+  # Data: Using the same directory for the actual data and for the WAL
+  "data-dir": "{{ etcd_data_dir }}"
+  "wal-dir": ""
+  # Logging: Using SystemD
+  "logger": "zap"
+  "log-outputs": "systemd/journal"
+  # Cluster settings
+  # TODO: Disabling explicitly
+  # "heartbeat-interval": "100"
+  # "election-timeout": "1000"
+  # Storage settings
+  # TODO: Tuning
+  "auto-compaction-retention": "0"
+  "snapshot-count": "100000"
+  "max-snapshots": "5"
+  "max-wals": "5"
+  "quota-backend-bytes": "0"
+  # TODO: Additional
+  
+
+#
+# ETCD-Service settings
+#
+
+etcd_service_name: "etcd"
+
+etcd_service_options:
+  - User={{ etcd_user }}
+  - Group={{ etcd_group }}
+  - Restart=on-failure
+  - RestartSec=5
+  - Type=notify
+  - ProtectHome=true
+  - PrivateTmp=true
+  - ProtectSystem=full
+  - ProtectKernelModules=true
+  - ProtectKernelTunables=true
+  - ProtectControlGroups=true
+  - CapabilityBoundingSet=~CAP_SYS_PTRACE

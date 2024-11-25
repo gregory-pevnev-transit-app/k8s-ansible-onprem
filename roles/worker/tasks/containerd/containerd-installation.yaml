@@ -1,0 +1,34 @@
+# Installing ContainerD binaries
+
+- name: "ContainerD Installation temporary directory provisioning"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ containerd_tmp_directory }}"
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: 0700
+
+- name: "ContainerD Installation archive downloading"
+  ansible.builtin.get_url:
+    url: "{{ containerd_url }}"
+    dest: "{{ containerd_tmp_archive }}"
+    checksum: "sha256:{{ containerd_url }}.sha256sum"
+    mode: 0600
+
+- name: "ContainerD Installation archive extracting"
+  ansible.builtin.unarchive:
+    remote_src: true
+    src: "{{ containerd_tmp_archive }}"
+    dest: "{{ containerd_tmp_directory }}"
+
+- name: "ContainerD binaries copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ containerd_tmp_directory }}{{ containerd_binaries_src_directory }}/{{ item }}"
+    dest: "{{ containerd_binary_directory }}/{{ item }}"
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: "{{ containerd_binary_mode }}"
+  loop: "{{ containerd_binaries }}"
+  notify:
+    - Restart containerd

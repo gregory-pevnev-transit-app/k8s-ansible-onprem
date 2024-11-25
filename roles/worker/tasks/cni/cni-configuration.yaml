@@ -1,0 +1,29 @@
+# Setting up single-node Container-Networking with
+#   1) Bridge networking: Allows bridging traffic from virtual network-interfaces / network-namespaces
+#       - Applies to traffic coming from Pods IP-Range
+#       - Only allows virtual networking on a single node
+#   2) Loopback networking: Allows reaching loopback addresses on the same host
+
+- name: "CNI networking configuration-directory setup"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cni_conf_directory }}"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_conf_directory_mode }}"
+
+- name: "CNI networking setup: Bridge networking"
+  ansible.builtin.template:
+    src: cni/1-bridge.conflist.j2
+    dest: "{{ cni_conf_directory }}/1-bridge.conflist"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_conf_file_mode }}"
+
+- name: "CNI networking setup: Loopback networking"
+  ansible.builtin.template:
+    src: cni/2-loopback.conflist.j2
+    dest: "{{ cni_conf_directory }}/2-loopback.conflist"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_conf_file_mode }}"

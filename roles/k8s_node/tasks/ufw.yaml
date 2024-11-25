@@ -1,0 +1,57 @@
+---
+- name: UFW installation
+  ansible.builtin.package:
+    name: ufw
+    state: present
+
+- name: UFW defaults
+  ansible.builtin.lineinfile:
+    dest: /etc/default/ufw
+    regexp: "{{ item }}"
+    line: "{{ ufw_defaults[item] }}"
+    state: present
+  loop: "{{ ufw_defaults | flatten }}"
+  notify: "Reload UFW"
+
+- name: UFW general rules
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    interface: "{{ item.interface | default('') }}"
+    direction: "{{ item.direction | default('in') }}"
+    from_ip: "{{ item.from_ip | default('any') }}"
+    to_ip: "{{ item.to_ip | default('any') }}"
+    from_port: "{{ item.from_port | default('') }}"
+    to_port: "{{ item.to_port | default('') }}"
+    protocol: "{{ item.protocol | default('any') }}"
+    log: "{{ item.log | default(False) }}"
+    delete: "{{ item.delete | default(False) }}"
+  loop: "{{ ufw_general_rules }}"
+  loop_control:
+    pause: 1
+  notify: "Reload UFW"
+
+- name: UFW node-specific rules
+  community.general.ufw:
+    rule: "{{ item.rule }}"
+    interface: "{{ item.interface | default('') }}"
+    direction: "{{ item.direction | default('in') }}"
+    from_ip: "{{ item.from_ip | default('any') }}"
+    to_ip: "{{ item.to_ip | default('any') }}"
+    from_port: "{{ item.from_port | default('') }}"
+    to_port: "{{ item.to_port | default('') }}"
+    protocol: "{{ item.protocol | default('any') }}"
+    log: "{{ item.log | default(False) }}"
+    delete: "{{ item.delete | default(False) }}"
+  loop: "{{ ufw_node_rules }}"
+  loop_control:
+    pause: 1
+  when: ufw_node_rules is defined
+  notify: "Reload UFW"
+
+- name: UFW logging enabling
+  community.general.ufw:
+    logging: "on"
+
+- name: UFW firewall/iptables enabling
+  community.general.ufw:
+    state: enabled

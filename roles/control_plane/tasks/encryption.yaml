@@ -1,0 +1,11 @@
+# Generating the encryption-key on the fly randomly
+- name: "K8s encryption key setup (Generation)"
+  ansible.builtin.shell: "head -c 32 /dev/urandom | base64"
+  register: k8s_encryption_key_generation
+  run_once: true
+- name: "K8s encryption key setup (Registration)"
+  ansible.builtin.set_fact:
+    k8s_encryption_key: "{{ k8s_encryption_key_generation.stdout }}"
+- name:  "K8s encryption key setup (Check)"
+  ansible.builtin.debug:
+    var: k8s_encryption_key

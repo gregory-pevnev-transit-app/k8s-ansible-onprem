@@ -1,0 +1,68 @@
+# 1. Creating a group for using ContainerD -> Retrieving the GID
+- name: "ContainerD users group provisioning"
+  ansible.builtin.group:
+    name: "{{ containerd_users_group }}"
+    state: present
+- name: "ContainerD users group GID retrieval (Find)"
+  ansible.builtin.getent:
+    database: group
+    key: "{{ containerd_users_group }}"
+- name: "ContainerD users group GID retrieval (Set)"
+  ansible.builtin.set_fact:
+    containerd_users_group_gid: '{{ ansible_facts.getent_group[containerd_users_group][1] }}'
+- name: "ContainerD users group GID retrieval (Check)"
+  ansible.builtin.debug:
+    var: containerd_users_group_gid
+
+# 2. Setting up configuration and data directories for running ContainerD
+- name: "ContainerD configuration and data directories creation"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ item }}"
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: 0755
+  loop:
+    - "{{ containerd_config_directory }}"
+    - "{{ containerd_data_directory }}"
+    - "{{ containerd_state_directory }}"
+
+# 3. Provisioning the ContainerD configuration-file
+- name: "ContainerD configuration setup"
+  ansible.builtin.template:
+    src: "containerd/config.toml.j2"
+    dest: "{{ containerd_config_file }}"
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: 0644
+  notify:
+    - Restart containerd
+
+# 4. Copying certificate-files for ContainerD to allow pulling private images (Optional)
+- name: "ContainerD certificates copying"
+  copy:
+    src: "{{ containerd_certs_workstation_path }}/"    # note the '/' <-- !!!
+    dest: "{{ containerd_config_certs_directory }}/"
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: 0644
+  when: containerd_certs_workstation_path is defined
+
+# 5. Provisioning and setting up ContainerD service
+- name: "ContainerD service-file provisioning"
+  ansible.builtin.template:
+    src: systemd/containerd.service.j2
+    dest: /etc/systemd/system/{{ containerd_service_name }}.service
+    owner: "{{ containerd_owner }}"
+    group: "{{ containerd_group }}"
+    mode: 0644
+  notify:
+    - Reload systemd
+    - Restart containerd
+- name: "Flushing handlers"
+  ansible.builtin.meta: flush_handlers
+- name: "ContainerD SystemD service activation"
+  ansible.builtin.service:
+    name: "{{ containerd_service_name }}"
+    enabled: true
+    state: started

@@ -1,0 +1,28 @@
+- name: "K8s Controller-Manager configuration directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_controller_manager_conf_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_log_dir_mode }}"
+    state: directory
+
+- name: "K8s Controller-Manager kube-config authentication setup"
+  ansible.builtin.include_tasks:
+    file: "controller-manager/controller-manager-auth.yaml"
+
+- name: "K8s Controller-Manager SystemD service-file provisioning"
+  ansible.builtin.template:
+    src: systemd/kube-controller-manager.service.j2
+    dest: "/etc/systemd/system/{{ k8s_controller_manager_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart kube-controller-manager
+
+- name: "K8s Controller-Manager SystemD service activation"
+  ansible.builtin.service:
+    name: "{{ k8s_controller_manager_service_name }}"
+    enabled: true
+    state: started

@@ -1,0 +1,19 @@
+# Security: Creating a system user and a system group
+#   - No home directory
+#   - No shell
+#   - Cannot be used for login
+
+- name: "K8s Control-Plane group provisioning"
+  ansible.builtin.group:
+    name: "{{ k8s_group }}"
+    system: true
+    state: present
+
+- name: "K8s Control-Plane user provisioning"
+  ansible.builtin.user:
+    name: "{{ k8s_user }}"
+    system: true
+    shell: "/bin/false"
+    group: "{{ k8s_group }}"
+    groups: "{{ k8s_pki_admin_group }}" # Allows accessing the PKI files (CA and Certificates)
+    state: present

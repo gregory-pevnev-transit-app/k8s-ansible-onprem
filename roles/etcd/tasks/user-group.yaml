@@ -1,0 +1,19 @@
+# Security: Creating a system user and a system group
+#   - No home directory
+#   - No shell
+#   - Cannot be used for login
+
+- name: "ETCD group provisioning"
+  ansible.builtin.group:
+    name: "{{ etcd_group }}"
+    system: true
+    state: present
+
+- name: "ETCD user provisioning"
+  ansible.builtin.user:
+    name: "{{ etcd_user }}"
+    shell: "/bin/false"
+    system: true
+    group: "{{ etcd_group }}"
+    groups: "{{ k8s_pki_admin_group }}" # Allows accessing the ETCD PKI files (CA and Certificates)
+    state: present

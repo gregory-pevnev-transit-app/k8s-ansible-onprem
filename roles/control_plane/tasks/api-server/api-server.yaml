@@ -1,0 +1,40 @@
+- name: "K8s API-Server configuration directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_apiserver_conf_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_conf_dir_mode }}"
+    state: directory
+
+- name: "K8s API-Server audit-logs directory setup"
+  ansible.builtin.file:
+    path: "{{ k8s_apiserver_audit_log_dir }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_log_dir_mode }}"
+    state: directory
+
+- name: "K8s API-Server encryption configuration file provisioning"
+  ansible.builtin.template:
+    src: kubernetes/encryption-config.yaml.j2
+    dest: "{{ k8s_apiserver_encryption_conf_file }}"
+    owner: "{{ k8s_user }}"
+    group: "{{ k8s_group }}"
+    mode: "{{ k8s_apiserver_encryption_conf_file_mode }}"
+
+- name: "K8s API-Server SystemD service-file provisioning"
+  ansible.builtin.template:
+    src: systemd/kube-apiserver.service.j2
+    dest: "/etc/systemd/system/{{ k8s_apiserver_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Restart kube-apiserver
+
+- name: "K8s API-Server SystemD service activation"
+  ansible.builtin.service:
+    name: "{{ k8s_apiserver_service_name }}"
+    enabled: true
+    state: started

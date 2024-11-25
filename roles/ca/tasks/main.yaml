@@ -1,0 +1,123 @@
+#
+# Setup
+#
+
+# 1) PKI administration user and group - Owning the final PKI files (Certificates and Files)
+#   -> Allows using by other components (Joining the group / Acting as the user)
+- name: "PKI administration group setup"
+  ansible.builtin.group:
+    name: "{{ k8s_pki_admin_group }}"
+    system: true
+    state: present
+- name: "PKI administration user setup"
+  ansible.builtin.user:
+    name: "{{ k8s_pki_admin_user }}"
+    system: true
+    shell: "/bin/false"
+    group: "{{ k8s_pki_admin_group }}"
+    state: present
+
+# 2) PKI directories
+# Outputting all CA / Certificate files into permanent directories for usage by K8s / ETCD / etc.
+- name: "Setting up PKI configuration directories for CAs and Certificates"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ k8s_pki_admin_user }}"
+    group: "{{ k8s_pki_admin_group }}"
+    mode: "{{ k8s_ca_certificate_directory_perm }}"
+    state: directory
+  loop:
+    - "{{ k8s_pki_directory }}"
+    - "{{ k8s_etcd_pki_directory }}"
+    - "{{ k8s_worker_pki_directory }}"
+
+# 3) Work-Directory
+# Using a work-directory for provisioning all the CA / Certificate files
+- name: "Setting up work directory for provisioning CAs and Certificates"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}"
+    owner: "{{ k8s_ca_certificate_owner }}"
+    group: "{{ k8s_ca_certificate_group }}"
+    mode: "{{ k8s_ca_certificate_directory_perm }}"
+    state: directory
+
+#
+# Provisioning CAs and Certificates for various components
+#
+
+# 1) ETCD (CA and all the Certificates)
+- name: "Provisioning CA and Certificates for ETCD"
+  ansible.builtin.include_tasks:
+    file: "etcd.yaml"
+
+# 2) K8s CA
+- name: "Provisioning CA for K8s"
+  ansible.builtin.include_tasks:
+    file: "k8s-ca.yaml"
+
+# 3) K8s API-Server Certificate
+# Important: The API-Server Certificate acts as both
+#   - TLS-Certificate for th API-Server
+#   - Client-Certificate for the Kubelet
+- name: "Provisioning Certificate for K8s API-Server"
+  ansible.builtin.include_tasks:
+    file: "control-plane/k8s-api-server.yaml"
+
+# 4) K8s Scheduler Certificate
+- name: "Provisioning Certificate for K8s Scheduler"
+  ansible.builtin.include_tasks:
+    file: "control-plane/k8s-scheduler.yaml"
+
+# 5) K8s Controller-Manager Certificate
+- name: "Provisioning Certificate for K8s Controller-Manager"
+  ansible.builtin.include_tasks:
+    file: "control-plane/k8s-controller-manager.yaml"
+
+# 6) K8s Service-Account Key-Pair and Certificate
+#   - Using the Key-Pair for signing and verifying SAs
+#   - Using the Certificate for authenticate the Controller-Manager loops SA
+- name: "Provisioning Key-Pair and Certificate for K8s Service-Accounts"
+  ansible.builtin.include_tasks:
+    file: "control-plane/k8s-sa.yaml"
+
+# 7) K8s Admin-User Certificate
+- name: "Provisioning Certificate for K8s Admin-User"
+  ansible.builtin.include_tasks:
+    file: "control-plane/k8s-admin.yaml"
+
+# 8) K8s Kubelet Certificate
+- name: "Provisioning Certificate for K8s Kubelet"
+  ansible.builtin.include_tasks:
+    file: "worker/k8s-kubelet.yaml"
+
+# 9) K8s Kube-Proxy Certificate
+- name: "Provisioning Certificate for K8s Kube-Proxy"
+  ansible.builtin.include_tasks:
+    file: "worker/k8s-kube-proxy.yaml"
+
+#
+# Deleting the temporary PKI files (Avoid caching - Prevent changes from being applied)
+#
+
+- name: "Cleaning up up work directory for provisioning CAs and Certificates"
+  ansible.builtin.file:
+    path: "{{ k8s_ca_certificate_conf_directory }}"
+    state: absent
+
+#
+# Downloading PKI files for the Worker-Node
+#   -> Copied from the local node to the Worker-Node down the line
+#
+
+- name: "Downloading Worker PKI files"
+  ansible.builtin.fetch:
+    src: "{{ k8s_worker_pki_directory }}/{{ item }}"
+    dest: "{{ k8s_worker_pki_workstation_path }}/{{ item }}"
+    flat: true
+  loop:
+    - ca.crt
+    - ca.key
+    - kubelet.crt
+    - kubelet.key
+    - kube-proxy.crt
+    - kube-proxy.key

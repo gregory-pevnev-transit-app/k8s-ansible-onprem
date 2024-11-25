@@ -1,0 +1,41 @@
+# Installing CNI Plugins binaries
+
+- name: "CNI Plugins Installation binary directory provisioning"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cni_bin_directory }}"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_bin_directory_mode }}"
+
+- name: "CNI Plugins Installation temporary directory provisioning"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cni_tmp_directory }}"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_bin_directory_mode }}"
+
+- name: "CNI Plugins Installation archive downloading"
+  ansible.builtin.get_url:
+    url: "{{ cni_url }}"
+    dest: "{{ cni_tmp_archive }}"
+    mode: "0640"
+    checksum: "sha256:{{ cni_url }}.sha256"
+
+- name: "CNI Plugins Installation archive extracting"
+  ansible.builtin.unarchive:
+    remote_src: true
+    src: "{{ cni_tmp_archive }}"
+    dest: "{{ cni_tmp_directory }}"
+    mode: "{{ cni_binary_mode }}"
+
+- name: "CNI Plugins binaries copying"
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ cni_tmp_directory }}/{{ item }}"
+    dest: "{{ cni_bin_directory }}/{{ item }}"
+    owner: "{{ cni_owner }}"
+    group: "{{ cni_group }}"
+    mode: "{{ cni_binary_mode }}"
+  with_items: "{{ cni_plugins }}"

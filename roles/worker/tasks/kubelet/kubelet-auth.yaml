@@ -1,0 +1,53 @@
+# Step 1. Setting the Cluster
+- name: "K8s Worker Kubelet kube-config generation (Setting the cluster)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-cluster {{ k8s_cluster_name }} \
+      --kubeconfig={{ k8s_worker_kubelet_kubeconfig }} \
+      --server={{ k8s_worker_api_endpoint }} \
+      --certificate-authority={{ k8s_worker_pki_dir }}/ca.crt \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+
+# Step 2. Setting the User (Kubelet)
+- name: "K8s Worker Kubelet kube-config generation (Setting the user credentials)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-credentials system:node:{{ k8s_worker_node_hostname }} \
+      --kubeconfig={{ k8s_worker_kubelet_kubeconfig }} \
+      --client-certificate={{ k8s_worker_pki_dir }}/kubelet.crt \
+      --client-key={{ k8s_worker_pki_dir }}/kubelet.key \
+      --embed-certs=true
+  args:
+    executable: /bin/bash
+
+# Step 3. Setting the Context (Kubelet with Remote API-Server)
+- name: "K8s Worker Kubelet kube-config generation (Setting the context)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config set-context default \
+      --kubeconfig={{ k8s_worker_kubelet_kubeconfig }} \
+      --cluster={{ k8s_cluster_name }} \
+      --user=system:node:{{ k8s_worker_node_hostname }}
+  args:
+    executable: /bin/bash
+
+# Step 4. Setting the Context as the default
+- name: "K8s Worker Kubelet kube-config generation (Setting the context as the default)"
+  ansible.builtin.shell: >
+    set -o errexit; \
+    kubectl config use-context default \
+      --kubeconfig={{ k8s_worker_kubelet_kubeconfig }}
+  args:
+    executable: /bin/bash
+
+# Step 5. Setting kube-config files permissions
+- name: "K8s Worker Kubelet kube-config generation (Setting the file permissions)"
+  ansible.builtin.file:
+    path: "{{ k8s_worker_kubelet_kubeconfig }}"
+    owner: "{{ k8s_worker_user }}"
+    group: "{{ k8s_worker_group }}"
+    mode: "{{ k8s_worker_kube_config_file_mode }}"
+    modification_time: "preserve"
+    access_time: "preserve"
